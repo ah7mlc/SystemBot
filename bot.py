@@ -16,10 +16,17 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Bot Ready: {bot.user}")
 
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong! 🏓 البوت شغال تمام")
+
+@bot.command()
+async def هلا(ctx):
+    await ctx.send(f"هلا والله {ctx.author.mention} 👋")
+
 @bot.event
 async def on_message(message):
     if message.author.bot: return
-    print(f"{message.author}: {message.content}")
     await bot.process_commands(message)
 
 TOKEN = os.getenv("TOKEN")
