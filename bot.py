@@ -83,4 +83,4 @@ app = Flask('')
 @app.route('/')
 def home(): return "OK"
 Thread(target=lambda: app.run(host='0.0.0.0',port=8080)).start()
-bot.run(os.getenv("TOKEN"))
+bot.run(os.getenv("DISCORD_TOKEN"))
