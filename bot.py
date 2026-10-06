@@ -17,7 +17,15 @@ async def ping(ctx):
 
 @bot.command()
 async def help(ctx):
-    embed = discord.Embed(title="مركز المساعدة", description="-ping\n-help\nقريبا نضيف الالعاب", color=0x2ecc71)
+    embed = discord.Embed(title="📜 مركز المساعدة - System Bot", color=0x2ecc71)
+    embed.add_field(name="🛡️ الادارة", value="`ban` `kick` `clear`\n`lock` `unlock`", inline=True)
+    embed.add_field(name="🎮 الالعاب", value="`xo @منشن` `rps`\n`8ball` `bola`", inline=True)
+    embed.add_field(name="⚙️ عام", value="`ping` `help` `avatar`", inline=True)
+    embed.set_footer(text="Prefix: - | System Bot")
     await ctx.send(embed=embed)
+
+@bot.command()
+async def bola(ctx):
+    await ctx.send("لعبة bola قريبا!")
 
 bot.run(os.environ["DISCORD_TOKEN"])
