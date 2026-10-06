@@ -15,4 +15,9 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send("شغال!")
 
+@bot.command()
+async def help(ctx):
+    embed = discord.Embed(title="مركز المساعدة", description="-ping\n-help\nقريبا نضيف الالعاب", color=0x2ecc71)
+    await ctx.send(embed=embed)
+
 bot.run(os.environ["DISCORD_TOKEN"])
