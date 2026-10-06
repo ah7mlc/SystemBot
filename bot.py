@@ -1,113 +1,86 @@
 import discord
 from discord.ext import commands
-import random
+import os, datetime
 from flask import Flask
 from threading import Thread
-import os
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
+def parse_time(s):
+    try:
+        u, n = s[-1], int(s[:-1])
+        if u == "s": return datetime.timedelta(seconds=n)
+        if u == "m": return datetime.timedelta(minutes=n)
+        if u == "h": return datetime.timedelta(hours=n)
+        if u == "d": return datetime.timedelta(days=n)
+    except: return None
+
 @bot.event
 async def on_ready():
-    print(f"✅ شغال باسم {bot.user}")
-    await bot.change_presence(activity=discord.Game(name="!help | SystemBot"))
+    print(f"✅ {bot.user} Online")
 
-# ======== HELP الجديد ========
-@bot.command()
-async def help(ctx):
-    embed = discord.Embed(title="📜 أوامر SystemBot", description="البادئة: `!`", color=0x2ecc71)
-    embed.add_field(name="🔹 عام", value="`ping` - البنق\n`هلا` - ترحيب\n`avatar` - صورتك\n`userinfo` - معلوماتك\n`serverinfo` - معلومات السيرفر\n`say` - يكرر كلامك", inline=False)
-    embed.add_field(name="🔹 ادارة", value="`clear 10` - مسح رسائل\n`kick @عضو` - طرد\n`ban @عضو` - حظر", inline=False)
-    embed.add_field(name="🔹 ترفيه", value="`نكتة` - نكتة عشوائية\n`حب @شخص @شخص` - نسبة حب\n`اقتباس` - حكمة", inline=False)
-    embed.add_field(name="🔹 اسلامي", value="`اذكار`\n`قرآن`", inline=False)
-    embed.set_footer(text=f"طلب بواسطة {ctx.author.name}")
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"🏓 Pong! {round(bot.latency*1000)}ms - البوت شغال تمام")
-
-@bot.command()
-async def هلا(ctx):
-    await ctx.send(f"هلا والله {ctx.author.mention} 😍🔥")
-
-@bot.command()
-async def avatar(ctx, member: discord.Member = None):
-    member = member or ctx.author
-    embed = discord.Embed(title=f"صورة {member.name}", color=0x3498db)
-    embed.set_image(url=member.display_avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def userinfo(ctx, member: discord.Member = None):
-    member = member or ctx.author
-    embed = discord.Embed(title=f"معلومات {member.display}", color=0x3498db)
-    embed.add_field(name="ID", value=member.id)
-    embed.add_field(name="دخل السيرفر", value=member.joined_at.strftime("%Y-%m-%d"))
-    embed.set_thumbnail(url=member.display_avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def serverinfo(ctx):
-    g = ctx.guild
-    embed = discord.Embed(title=g.name, color=0x9b59b6)
-    embed.add_field(name="الأعضاء", value=g.member_count)
-    embed.add_field(name="المالك", value=g.owner)
-    embed.set_thumbnail(url=g.icon.url if g.icon else None)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def say(ctx, *, text):
-    await ctx.message.delete()
-    await ctx.send(text)
-
-@bot.command()
-@commands.has_permissions(manage_messages=True)
-async def clear(ctx, amount: int = 5):
-    await ctx.channel.purge(limit=amount+1)
-    await ctx.send(f"✅ تم مسح {amount} رسائل", delete_after=2)
-
-@bot.command()
+# k = kick / طرد
+@bot.command(name="k")
 @commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member, *, reason="بدون سبب"):
+async def k(ctx, member: discord.Member, *, reason="بدون سبب"):
     await member.kick(reason=reason)
-    await ctx.send(f"👢 تم طرد {member}")
+    await ctx.send(f"👢 تم طرد {member.mention} | {reason}")
 
-@bot.command()
+# b = ban / باند
+@bot.command(name="b")
 @commands.has_permissions(ban_members=True)
-async def ban(ctx, member: discord.Member, *, reason="بدون سبب"):
+async def b(ctx, member: discord.Member, *, reason="بدون سبب"):
     await member.ban(reason=reason)
-    await ctx.send(f"🔨 تم حظر {member}")
+    await ctx.send(f"🔨 تم باند {member} | {reason}")
 
-@bot.command(name="نكتة")
-async def nokta(ctx):
-    jokes = ["مرة واحد نام متأخر حلم انه متأخر 😂", "واحد غبي سألوه وش رايك بالتعليم عن بعد؟ قال عن قرب ما فهمت عشان افهم عن بعد 😂"]
-    await ctx.send(random.choice(jokes))
+# ub = unban
+@bot.command(name="ub")
+@commands.has_permissions(ban_members=True)
+async def ub(ctx, user_id: int):
+    user = await bot.fetch_user(user_id)
+    await ctx.guild.unban(user)
+    await ctx.send(f"✅ فك باند {user}")
 
-@bot.command()
-async def حب(ctx, m1: discord.Member, m2: discord.Member):
-    await ctx.send(f"❤️ نسبة الحب بين {m1.mention} و {m2.mention} هي {random.randint(0,100)}%")
+# m = mute / t = timeout نفس الشي
+@bot.command(name="m")
+@commands.has_permissions(moderate_members=True)
+async def m(ctx, member: discord.Member, time: str = "10m", *, reason="بدون سبب"):
+    dur = parse_time(time)
+    if not dur: return await ctx.send("❌ اكتب الوقت صح: `!m @عضو 10m` او `10s` `1h` `1d`")
+    await member.timeout(dur, reason=reason)
+    await ctx.send(f"🔇 {member.mention} ميوت لمدة {time} | {reason}")
 
-@bot.command()
-async def اقتباس(ctx):
-    quotes = ["لا تؤجل عمل اليوم الى الغد", "من جد وجد ومن زرع حصد", "الابتسامة صدقة"]
-    await ctx.send(f"💡 {random.choice(quotes)}")
+@bot.command(name="t")
+@commands.has_permissions(moderate_members=True)
+async def t(ctx, member: discord.Member, time: str, *, reason="بدون سبب"):
+    dur = parse_time(time)
+    if not dur: return await ctx.send("❌ مثال: `!t @عضو 30m سبام`")
+    await member.timeout(dur, reason=reason)
+    await ctx.send(f"⏰ {member.mention} تايم {time} | {reason}")
 
-@bot.command()
-async def اذكار(ctx):
-    await ctx.send("🤲 سبحان الله، الحمد لله، لا إله إلا الله، الله أكبر")
+# um = فك الميوت
+@bot.command(name="um")
+@commands.has_permissions(moderate_members=True)
+async def um(ctx, member: discord.Member):
+    await member.timeout(None)
+    await ctx.send(f"✅ تم فك {member.mention}")
 
-@bot.command()
-async def قرآن(ctx):
-    await ctx.send("﴿ إِنَّ مَعَ الْعُسْرِ يُسْرًا ﴾ ❤️")
+# c = مسح
+@bot.command(name="c")
+@commands.has_permissions(manage_messages=True)
+async def c(ctx, amount: int = 5):
+    await ctx.channel.purge(limit=amount+1)
+    await ctx.send(f"🧹 مسح {amount}", delete_after=2)
 
-# ======== عشان Render ========
+@bot.command(name="help")
+async def help_cmd(ctx):
+    e = discord.Embed(title="⚙️ SystemBot - اختصارات", color=0x00ff88)
+    e.add_field(name="الاوامر", value="`!k @عضو` طرد\n`!b @عضو` باند\n`!ub ID` فك باند\n`!m @عضو 10m` ميوت\n`!t @عضو 1h` تايم\n`!um @عضو` فك ميوت\n`!c 10` مسح", inline=False)
+    await ctx.send(embed=e)
+
 app = Flask('')
 @app.route('/')
-def home(): return "Bot is Online!"
-
-def run(): app.run(host='0.0.0.0', port=8080)
-Thread(target=run).start()
-
+def home(): return "OK"
+Thread(target=lambda: app.run(host='0.0.0.0',port=8080)).start()
 bot.run(os.getenv("TOKEN"))
