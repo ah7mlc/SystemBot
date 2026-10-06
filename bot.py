@@ -4,10 +4,16 @@ import discord
 from discord.ext import commands
 import os
 
-app = Flask('')
+app = Flask(__name__)
 @app.route('/')
-def home(): return "Bot is Alive!"
-threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000)).start()
+def home(): 
+    return "Bot is Alive!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+threading.Thread(target=run_web).start()
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -26,11 +32,14 @@ async def هلا(ctx):
 
 @bot.event
 async def on_message(message):
-    if message.author.bot: return
+    if message.author.bot: 
+        return
     await bot.process_commands(message)
 
-TOKEN = os.getenv("TOKEN")
+# هذا السطر هو المهم - يقرأ من أي اسم
+TOKEN = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")
+
 if not TOKEN:
-    with open("token.txt", "r", encoding="utf-8") as f:
-        TOKEN = f.read().strip()
-bot.run(TOKEN)
+    print("ERROR: ما لقيت التوكن! تأكد انك حاط DISCORD_TOKEN في Render")
+else:
+    bot.run(TOKEN)
